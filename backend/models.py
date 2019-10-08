@@ -70,6 +70,7 @@ class Board(BaseModel):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
+    project = db.Column(db.ForeignKey('projects.id'))
 
 
 ticket_component = db.Table('ticket_component',
@@ -91,11 +92,18 @@ class Subtask(BaseModel):
     parent_id = db.Column(db.Integer, db.ForeignKey('tickets.id'), nullable=False)
 
 
+class TicketType(BaseModel):
+    __tablename__ = 'ticket_types'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+
+
 class Ticket(BaseModel):
     __tablename__ = 'tickets'
 
     id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.ForeignKey('priorities.id'))
+    type = db.Column(db.ForeignKey('ticket_types.id'))
     complexity = db.Column(db.ForeignKey('complexities.id'))
     components = db.relationship(Component, secondary=ticket_component, lazy='subquery',
                                  backref=db.backref('tickets', lazy=True))
@@ -103,7 +111,7 @@ class Ticket(BaseModel):
     fix_version = db.Column(db.ForeignKey('releases.id'))
     assigned_to = db.Column(db.ForeignKey('employees.id'))
     subtasks = db.relationship(Subtask, backref='parent', lazy=True)
-    is_present = db.Column(db.Boolean)
+    is_parent = db.Column(db.Boolean)
     column_id = db.Column(db.Integer, db.ForeignKey('columns.id'), nullable=False)
     content = db.Column(db.String)
     priority = db.Column(db.ForeignKey('priorities.id'))

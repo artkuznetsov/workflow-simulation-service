@@ -11,9 +11,9 @@ POSTGRES = {
     'port': '5432',
 }
 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['DEBUG'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
-%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 db.init_app(app)
 
 # app.register_blueprint(api_v1, url_prefix='/api/v1/')
@@ -29,6 +29,7 @@ RoleView.register(app)
 SubtaskView.register(app)
 TicketView.register(app)
 SimulationView.register(app)
+TicketTypeView.register(app)
 
 if __name__ == '__main__':
     app.run()

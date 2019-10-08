@@ -1,16 +1,9 @@
-from datetime import datetime
-
-from flask import Flask, request, Response, stream_with_context
+from flask import Flask, request
 from flask_classful import FlaskView, route
 
 from models import *
 from views.simulation import SimulationWrapper
-import asyncio
 import threading
-
-app = Flask(__name__)
-
-# api_v1 = Blueprint("api_v1", __name__)
 
 
 class ModelView(FlaskView):
@@ -19,36 +12,63 @@ class ModelView(FlaskView):
     route_prefix = 'api/v1/'
 
     def index(self):
-        response = jsonify(self.__model__.filter(**request.args))
+        from app import app
+        with app.app_context():
+            response = jsonify(self.__model__.filter(**request.args))
         return app.make_response(response)
 
     def get(self, id: int):
-        return app.make_response(jsonify(self.__model__.filter(id=id)))
+        from app import app
+        with app.app_context():
+            return app.make_response(jsonify(self.__model__.filter(id=id)))
 
     def post(self):
-        entity = self.__model__(**request.json)
-        print("AFTER CREATING IN DB WE HAVE SELF AS ", entity.id)
+        from app import app
+        with app.app_context():
+            self.__model__(**request.json)
 
-        return app.response_class(
-            status=201,
-            mimetype='application/json'
-        )
+            return app.response_class(
+                status=201,
+                mimetype='application/json'
+            )
 
     @route('/<id>', methods=['PUT', 'PATCH'])
     def patch(self, id):
-        self.__model__.patch(id, **request.json)
+        from app import app
+        with app.app_context():
+            self.__model__.patch(id, **request.json)
 
-        return app.response_class(
-            status=200,
-            mimetype='application/json'
-        )
+            return app.response_class(
+                status=200,
+                mimetype='application/json'
+            )
 
     def delete(self, id):
-        self.__model__.delete(id)
-        return app.response_class(
-            status=200,
-            mimetype='application/json'
-        )
+        from app import app
+        with app.app_context():
+            self.__model__.delete(id)
+            return app.response_class(
+                status=200,
+                mimetype='application/json'
+            )
+
+
+class SimulationView(ModelView):
+    __model__ = Simulation
+
+    def post(self):
+        from app import app
+        with app.app_context():
+            simulation = self.__model__(**request.json)
+            simulation = SimulationWrapper(simulation)
+            simulation_thread = threading.Thread(target=simulation.run, args=[request.json['until']])
+            simulation_thread.daemon = True
+            simulation_thread.start()
+
+            return app.response_class(
+                status=200,
+                mimetype='application/json'
+            )
 
 
 class BoardView(ModelView):
@@ -99,18 +119,7 @@ class TicketView(ModelView):
     __model__ = Ticket
 
 
-class SimulationView(ModelView):
-    __model__ = Simulation
+class TicketTypeView(ModelView):
+    __model__ = TicketType
 
-    def post(self):
-        simulation = self.__model__(**request.json)
-        simulation = SimulationWrapper(simulation)
-        simulation_thread = threading.Thread(target=simulation.run_simulation, args=[request.json['until']])
-        simulation_thread.daemon = True
-        simulation_thread.start()
-
-        return app.response_class(
-            status=200,
-            mimetype='application/json'
-        )
 
